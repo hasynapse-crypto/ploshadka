@@ -400,7 +400,7 @@
         ? '<span class="photo-tag">' + escapeHtml(p.type) + '</span>'
         : '';
       const captionHtml = p.caption
-        ? '<span>' + escapeHtml(p.caption) + '</span>'
+        ? '<span class="photo-caption">' + escapeHtml(p.caption) + '</span>'
         : '';
       return '<div class="photo-card">' +
         '<a class="photo-link-preview" href="' + escapeHtml(p.openUrl) + '" target="_blank" rel="noopener noreferrer">' +
@@ -409,7 +409,7 @@
         '<div class="photo-meta">' +
           tagHtml +
           captionHtml +
-          '<a class="photo-open-link" href="' + escapeHtml(p.openUrl) + '" target="_blank" rel="noopener noreferrer">Открыть фото ↗</a>' +
+          '<a class="photo-open-link" href="' + escapeHtml(p.openUrl) + '" target="_blank" rel="noopener noreferrer"><span>Открыть фото</span> ↗</a>' +
         '</div>' +
       '</div>';
     }).join('');
@@ -419,7 +419,7 @@
     // 1. Шапка: «Данные на ДД.ММ.ГГГГ»
     const updatedEl = document.getElementById('updated-at');
     if (model.latestDateStr) {
-      updatedEl.textContent = 'Данные на ' + model.latestDateStr;
+      updatedEl.textContent = 'Синхр: ' + model.latestDateStr;
       updatedEl.hidden = false;
     } else {
       updatedEl.hidden = true;
@@ -432,6 +432,11 @@
       ' из ' + formatSum(model.totalGoal) +
       ' (' + model.rawPercent + '%)';
 
+    const percentBadge = document.getElementById('progress-percent-badge');
+    if (percentBadge) {
+      percentBadge.textContent = model.rawPercent + '%';
+    }
+
     const barTrack = document.getElementById('progress-bar-track');
     const barFill = document.getElementById('progress-bar-fill');
     barFill.style.width = model.barWidthPercent.toFixed(1) + '%';
@@ -439,9 +444,23 @@
 
     const remainingEl = document.getElementById('progress-remaining');
     if (model.overGoal > 0 && model.totalGoal > 0) {
-      remainingEl.textContent = 'Осталось собрать: 0 сум (сверх цели: +' + formatSum(model.overGoal) + ')';
+      remainingEl.textContent = '0 сум (+ ' + formatSum(model.overGoal) + ' сверх цели)';
     } else {
-      remainingEl.textContent = 'Осталось собрать: ' + formatSum(model.remaining);
+      remainingEl.textContent = formatSum(model.remaining);
+    }
+
+    const statusEl = document.getElementById('progress-status-text');
+    if (statusEl) {
+      if (model.overGoal > 0) {
+        statusEl.textContent = 'Цель перевыполнена';
+        statusEl.className = 'meta-value status-active';
+      } else if (model.totalCollected >= model.totalGoal && model.totalGoal > 0) {
+        statusEl.textContent = 'Сбор закрыт 100%';
+        statusEl.className = 'meta-value status-active';
+      } else {
+        statusEl.textContent = 'Идёт сбор';
+        statusEl.className = 'meta-value status-active';
+      }
     }
 
     // 3. Три карточки
@@ -473,7 +492,9 @@
       smetaBtn.onclick = function () {
         const isHidden = smetaPhotosBox.hidden;
         smetaPhotosBox.hidden = !isHidden;
-        smetaBtn.textContent = isHidden ? 'Скрыть фото сметы' : 'Фото сметы мастера';
+        smetaBtn.innerHTML = isHidden
+          ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg><span>Скрыть смету</span>'
+          : '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg><span>Оригинал сметы</span>';
       };
     } else {
       smetaBtn.hidden = true;
@@ -484,15 +505,25 @@
     document.getElementById('apartments-count').textContent = pluralizeApartments(model.apartmentsCount);
     const prihodContent = document.getElementById('prihod-content');
     if (!model.prihod.length) {
-      prihodContent.innerHTML = '<p class="empty-state">Пока нет записей</p>';
+      prihodContent.innerHTML = '<p class="empty-state">Пока нет записей о взносах</p>';
     } else {
       const rows = model.prihod.map(function (item) {
+        var methodStr = (item.method || '').toLowerCase();
+        var methodBadge = '<span style="color:var(--text-dim)">—</span>';
+        if (methodStr.indexOf('карт') !== -1) {
+          methodBadge = '<span class="pill-method pill-card">Карта</span>';
+        } else if (methodStr.indexOf('нал') !== -1) {
+          methodBadge = '<span class="pill-method pill-cash">Наличные</span>';
+        } else if (item.method) {
+          methodBadge = '<span class="pill-method pill-cash">' + escapeHtml(item.method) + '</span>';
+        }
+
         return '<tr>' +
-          '<td>' + escapeHtml(item.dateStr || '—') + '</td>' +
-          '<td>' + escapeHtml(item.house || '—') + '</td>' +
-          '<td>' + escapeHtml(item.flat || '—') + '</td>' +
+          '<td class="date-cell">' + escapeHtml(item.dateStr || '—') + '</td>' +
+          '<td><strong>д. ' + escapeHtml(item.house || '—') + '</strong></td>' +
+          '<td>кв. ' + escapeHtml(item.flat || '—') + '</td>' +
           '<td class="num">' + formatSum(item.amount) + '</td>' +
-          '<td>' + escapeHtml(item.method || '—') + '</td>' +
+          '<td>' + methodBadge + '</td>' +
         '</tr>';
       }).join('');
       prihodContent.innerHTML =
@@ -507,14 +538,14 @@
     // 6. Расходы
     const rashodContent = document.getElementById('rashod-content');
     if (!model.rashod.length) {
-      rashodContent.innerHTML = '<p class="empty-state">Пока нет записей</p>';
+      rashodContent.innerHTML = '<p class="empty-state">Пока нет записей о расходах</p>';
     } else {
       const rows = model.rashod.map(function (item) {
         const receiptCell = item.receiptUrl
-          ? '<a class="btn-link" href="' + escapeHtml(item.receiptUrl) + '" target="_blank" rel="noopener noreferrer">Чек</a>'
-          : '—';
+          ? '<a class="btn-receipt" href="' + escapeHtml(item.receiptUrl) + '" target="_blank" rel="noopener noreferrer"><span>Чек</span> <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M17 7H7M17 7V17"/></svg></a>'
+          : '<span style="color:var(--text-dim)">—</span>';
         return '<tr>' +
-          '<td>' + escapeHtml(item.dateStr || '—') + '</td>' +
+          '<td class="date-cell">' + escapeHtml(item.dateStr || '—') + '</td>' +
           '<td>' + escapeHtml(item.title || '—') + '</td>' +
           '<td class="num">' + formatSum(item.amount) + '</td>' +
           '<td class="num">' + receiptCell + '</td>' +
@@ -523,7 +554,7 @@
       rashodContent.innerHTML =
         '<div class="table-wrap">' +
           '<table>' +
-            '<thead><tr><th>Дата</th><th>На что</th><th class="num">Сумма</th><th class="num">Чек</th></tr></thead>' +
+            '<thead><tr><th>Дата</th><th>Назначение</th><th class="num">Сумма</th><th class="num">Чек</th></tr></thead>' +
             '<tbody>' + rows + '</tbody>' +
           '</table>' +
         '</div>';
@@ -532,7 +563,7 @@
     // 7. Фото «до / после»
     const fotoContent = document.getElementById('foto-content');
     if (!model.beforeAfterPhotos.length) {
-      fotoContent.innerHTML = '<p class="empty-state">Пока нет записей</p>';
+      fotoContent.innerHTML = '<p class="empty-state">Фотографии будут добавлены по ходу работ</p>';
     } else {
       fotoContent.innerHTML = '<div class="photos-grid">' +
         renderPhotosGrid(model.beforeAfterPhotos, true) +

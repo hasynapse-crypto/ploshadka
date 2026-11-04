@@ -2,80 +2,213 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Реконструкция детской площадки и футбольного поля</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <title>Реконструкция дворового комплекса · Финансовый отчёт</title>
+  <meta name="description" content="Открытый финансовый отчёт по сбору средств и расходам на реконструкцию детской площадки и футбольного поля.">
+  <meta name="theme-color" content="#090d16">
+
+  <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- Ambient background lighting mesh -->
+  <div class="ambient-glow ambient-glow-1" aria-hidden="true"></div>
+  <div class="ambient-glow ambient-glow-2" aria-hidden="true"></div>
+
   <div class="container">
+    <!-- Header -->
     <header class="header">
-      <h1>Реконструкция детской площадки и футбольного поля</h1>
-      <p id="updated-at" class="updated-at" hidden></p>
+      <div class="header-badges">
+        <span class="badge-live">
+          <span class="pulse-dot"></span>
+          <span>Открытый отчёт</span>
+        </span>
+        <span id="updated-at" class="badge-updated" hidden></span>
+      </div>
+      <h1 class="header-title">
+        Реконструкция детской площадки <span class="gradient-text">и футбольного поля</span>
+      </h1>
+      <p class="header-subtitle">
+        Прозрачный мониторинг сбора средств, сметы мастера и фактических расходов по чекам в реальном времени.
+      </p>
     </header>
 
+    <!-- Error Banner -->
     <div id="error-box" class="error-box" hidden>
-      Не удалось загрузить данные, обновите страницу
+      <div class="error-icon">⚠️</div>
+      <div class="error-content">
+        <div class="error-title">Не удалось синхронизировать данные</div>
+        <div class="error-desc">Пожалуйста, проверьте подключение к интернету или обновите страницу.</div>
+      </div>
     </div>
 
+    <!-- Main Content -->
     <main id="main-content">
+      <!-- Progress Section -->
       <section class="card progress-card">
-        <div class="progress-header">
-          <span id="progress-title" class="progress-title">Собрано 0 из 0 сум (0%)</span>
+        <div class="progress-top">
+          <div class="progress-label-wrap">
+            <span class="section-tag">Прогресс финансирования</span>
+            <div id="progress-title" class="progress-title">Собрано 0 из 0 сум (0%)</div>
+          </div>
+          <div id="progress-percent-badge" class="percent-badge">0%</div>
         </div>
+
         <div class="progress-bar-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progress-bar-track">
-          <div id="progress-bar-fill" class="progress-bar-fill" style="width: 0%"></div>
+          <div id="progress-bar-fill" class="progress-bar-fill" style="width: 0%">
+            <div class="progress-bar-glow"></div>
+          </div>
         </div>
-        <div id="progress-remaining" class="progress-remaining">Осталось собрать: 0 сум</div>
+
+        <div class="progress-footer">
+          <div class="progress-meta-item">
+            <span class="meta-label">Остаток к сбору</span>
+            <span id="progress-remaining" class="meta-value">0 сум</span>
+          </div>
+          <div class="progress-meta-item progress-meta-right">
+            <span class="meta-label">Статус</span>
+            <span id="progress-status-text" class="meta-value status-active">Идёт сбор</span>
+          </div>
+        </div>
       </section>
 
+      <!-- Key Stats Grid -->
       <section class="stats-grid">
-        <div class="card stat-card">
-          <div class="stat-label">Собрано</div>
-          <div id="stat-collected" class="stat-value stat-collected">0 сум</div>
+        <div class="card stat-card stat-collected-card">
+          <div class="stat-icon-wrap icon-collected">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+          </div>
+          <div class="stat-body">
+            <div class="stat-label">Всего собрано</div>
+            <div id="stat-collected" class="stat-value stat-collected">0 сум</div>
+            <div class="stat-hint">Взносы жителей двора</div>
+          </div>
         </div>
-        <div class="card stat-card">
-          <div class="stat-label">Потрачено</div>
-          <div id="stat-spent" class="stat-value stat-spent">0 сум</div>
+
+        <div class="card stat-card stat-spent-card">
+          <div class="stat-icon-wrap icon-spent">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>
+            </svg>
+          </div>
+          <div class="stat-body">
+            <div class="stat-label">Оплачено по смете</div>
+            <div id="stat-spent" class="stat-value stat-spent">0 сум</div>
+            <div class="stat-hint">Подтверждено чеками</div>
+          </div>
         </div>
-        <div class="card stat-card">
-          <div class="stat-label">Остаток на руках</div>
-          <div id="stat-balance" class="stat-value stat-balance">0 сум</div>
+
+        <div class="card stat-card stat-balance-card">
+          <div class="stat-icon-wrap icon-balance">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/>
+            </svg>
+          </div>
+          <div class="stat-body">
+            <div class="stat-label">Остаток в кассе</div>
+            <div id="stat-balance" class="stat-value stat-balance">0 сум</div>
+            <div class="stat-hint">Доступно для работ</div>
+          </div>
         </div>
       </section>
 
+      <!-- Estimate (Смета) -->
       <section class="card section-card">
         <div class="section-header">
-          <h2>Смета расходов</h2>
-          <button id="toggle-smeta-photos" class="btn-secondary" type="button" hidden>
-            Фото сметы мастера
+          <div class="section-title-group">
+            <div class="section-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+              </svg>
+            </div>
+            <div>
+              <h2>Смета расходов</h2>
+              <p class="section-desc">Расчёт мастера на материалы и монтажные работы</p>
+            </div>
+          </div>
+          <button id="toggle-smeta-photos" class="btn-action" type="button" hidden>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+            </svg>
+            <span>Оригинал сметы</span>
           </button>
         </div>
         <div id="smeta-photos-box" class="photos-grid smeta-photos-box" hidden></div>
         <div id="smeta-content"></div>
       </section>
 
+      <!-- Contributions (Взносы) -->
       <section class="card section-card">
         <div class="section-header">
-          <h2>Взносы жителей</h2>
-          <span id="apartments-count" class="badge">Сдали: 0 кв.</span>
+          <div class="section-title-group">
+            <div class="section-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+            </div>
+            <div>
+              <h2>Взносы жителей</h2>
+              <p class="section-desc">Учёт поступлений по домам и квартирам</p>
+            </div>
+          </div>
+          <span id="apartments-count" class="badge-count">Сдали: 0 кв.</span>
         </div>
         <div id="prihod-content"></div>
       </section>
 
+      <!-- Expenses (Расходы) -->
       <section class="card section-card">
         <div class="section-header">
-          <h2>Расходы по чекам</h2>
+          <div class="section-title-group">
+            <div class="section-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><line x1="16" y1="8" x2="8" y2="8"/><line x1="16" y1="12" x2="8" y2="12"/><line x1="10" y1="16" x2="8" y2="16"/>
+              </svg>
+            </div>
+            <div>
+              <h2>Фактические расходы</h2>
+              <p class="section-desc">Закупка материалов и оплата работ с подтверждением чеками</p>
+            </div>
+          </div>
         </div>
         <div id="rashod-content"></div>
       </section>
 
+      <!-- Gallery (Фото) -->
       <section class="card section-card">
         <div class="section-header">
-          <h2>Фото «до / после»</h2>
+          <div class="section-title-group">
+            <div class="section-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+              </svg>
+            </div>
+            <div>
+              <h2>Фотофиксация</h2>
+              <p class="section-desc">Площадка и футбольное поле до, во время и после реконструкции</p>
+            </div>
+          </div>
         </div>
         <div id="foto-content"></div>
       </section>
     </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-inner">
+        <div class="footer-sync">
+          <span class="footer-dot"></span>
+          <span>Автоматическая синхронизация с Google Sheets</span>
+        </div>
+        <div class="footer-note">Отчёт создан инициативной группой жителей двора</div>
+      </div>
+    </footer>
   </div>
 
   <script src="config.js"></script>
