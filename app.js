@@ -580,9 +580,43 @@
     });
   }
 
+  function initTabs() {
+    var nav = document.querySelector('.tabs-nav');
+    if (!nav) return;
+    var grid = document.querySelector('.dashboard-grid');
+    var buttons = nav.querySelectorAll('.tab-btn');
+    var sections = document.querySelectorAll('[data-section]');
+
+    buttons.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var tab = btn.getAttribute('data-tab');
+        buttons.forEach(function (b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+
+        if (tab === 'all') {
+          if (grid) grid.classList.remove('tab-active-single');
+          sections.forEach(function (sec) {
+            sec.style.display = '';
+          });
+        } else {
+          if (grid) grid.classList.add('tab-active-single');
+          sections.forEach(function (sec) {
+            if (sec.getAttribute('data-section') === tab) {
+              sec.style.display = '';
+            } else {
+              sec.style.display = 'none';
+            }
+          });
+        }
+      });
+    });
+  }
+
   function initBrowser() {
     if (typeof window === 'undefined' || typeof document === 'undefined') return;
     if (typeof CONFIG === 'undefined') return;
+
+    initTabs();
 
     Promise.all([
       fetchCSV(CONFIG.smetaUrl),
