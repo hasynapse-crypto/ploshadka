@@ -597,6 +597,8 @@
           rashod: results[2],
           foto: results[3]
         });
+        const errorBox = document.getElementById('error-box');
+        if (errorBox) errorBox.hidden = true;
         renderReport(model);
       })
       .catch(function (err) {
