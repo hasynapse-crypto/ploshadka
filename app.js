@@ -612,11 +612,42 @@
     });
   }
 
+  function initBeforeAfterSlider() {
+    var container = document.getElementById('ba-container');
+    var range = document.getElementById('ba-range');
+    var beforeImg = document.getElementById('ba-before-img');
+    var afterImg = document.getElementById('ba-after-img');
+    var viewButtons = document.querySelectorAll('.btn-concept-view');
+
+    if (!container || !range) return;
+
+    range.addEventListener('input', function () {
+      container.style.setProperty('--ba-pos', range.value + '%');
+    });
+
+    viewButtons.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var view = btn.getAttribute('data-view');
+        viewButtons.forEach(function (b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+
+        if (view === 'pole') {
+          if (beforeImg) beforeImg.src = 'pole.jpg';
+          if (afterImg) afterImg.src = 'pole_concept.jpg';
+        } else if (view === 'ploshadka') {
+          if (beforeImg) beforeImg.src = 'ploshadka.jpg';
+          if (afterImg) afterImg.src = 'ploshadka_concept.jpg';
+        }
+      });
+    });
+  }
+
   function initBrowser() {
     if (typeof window === 'undefined' || typeof document === 'undefined') return;
     if (typeof CONFIG === 'undefined') return;
 
     initTabs();
+    initBeforeAfterSlider();
 
     Promise.all([
       fetchCSV(CONFIG.smetaUrl),
