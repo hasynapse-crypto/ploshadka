@@ -164,16 +164,36 @@
               </div>
             </div>
 
-            <div class="concept-toggle-group" role="group" aria-label="Выбор ракурса">
-              <button class="btn-concept-view active" data-view="pole" type="button">
-                <span>⚽ Футбольное поле</span>
-              </button>
-              <button class="btn-concept-view" data-view="ploshadka" type="button">
-                <span>🛝 Детская площадка</span>
-              </button>
+            <div class="concept-controls">
+              <!-- Object Selector -->
+              <div class="concept-toggle-group" role="group" aria-label="Выбор объекта">
+                <button class="btn-concept-view active" data-view="pole" type="button">
+                  <span>⚽ Поле</span>
+                </button>
+                <button class="btn-concept-view" data-view="ploshadka" type="button">
+                  <span>🛝 Площадка</span>
+                </button>
+              </div>
+
+              <!-- Media Format Selector (Slider vs Video) -->
+              <div class="concept-toggle-group" role="group" aria-label="Формат">
+                <button class="btn-concept-mode active" data-mode="slider" type="button">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="15 18 9 12 15 6"></polyline><polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                  <span>Шторка</span>
+                </button>
+                <button class="btn-concept-mode" data-mode="video" type="button">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                  </svg>
+                  <span>Видео</span>
+                </button>
+              </div>
             </div>
           </div>
 
+          <!-- 1. Before / After Slider -->
           <div class="before-after-container" id="ba-container" style="--ba-pos: 50%;">
             <!-- Background: After / Concept -->
             <img id="ba-after-img" class="ba-img ba-after" src="pole_concept.jpg" alt="Проект после реконструкции" loading="lazy">
@@ -203,11 +223,18 @@
             <input type="range" min="0" max="100" value="50" class="ba-range-input" id="ba-range" aria-label="Сравнение до и после">
           </div>
 
-          <div class="concept-caption">
+          <!-- 2. Concept Video Player -->
+          <div class="concept-video-container" id="concept-video-wrap" hidden>
+            <video id="concept-video" class="concept-video-player" src="pole_video.mp4" controls playsinline loop preload="metadata" poster="pole_concept.jpg">
+              Ваш браузер не поддерживает встроенное видео.
+            </video>
+          </div>
+
+          <div class="concept-caption" id="concept-caption">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="15 18 9 12 15 6"/><polyline points="9 18 15 12 9 6"/>
             </svg>
-            <span>Потяните бегунок влево или вправо пальцем или мышкой, чтобы сравнить проект с текущим состоянием</span>
+            <span id="concept-caption-text">Потяните бегунок влево или вправо пальцем или мышкой, чтобы сравнить проект с текущим состоянием</span>
           </div>
         </section>
         <!-- Estimate (Смета) -->

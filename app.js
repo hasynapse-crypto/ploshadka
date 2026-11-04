@@ -613,31 +613,79 @@
   }
 
   function initBeforeAfterSlider() {
-    var container = document.getElementById('ba-container');
+    var baContainer = document.getElementById('ba-container');
+    var videoWrap = document.getElementById('concept-video-wrap');
+    var videoEl = document.getElementById('concept-video');
     var range = document.getElementById('ba-range');
     var beforeImg = document.getElementById('ba-before-img');
     var afterImg = document.getElementById('ba-after-img');
     var viewButtons = document.querySelectorAll('.btn-concept-view');
+    var modeButtons = document.querySelectorAll('.btn-concept-mode');
+    var captionText = document.getElementById('concept-caption-text');
 
-    if (!container || !range) return;
+    var currentView = 'pole';
+    var currentMode = 'slider';
 
-    range.addEventListener('input', function () {
-      container.style.setProperty('--ba-pos', range.value + '%');
-    });
+    function updateMedia() {
+      // 1. Update source files
+      if (currentView === 'pole') {
+        if (beforeImg) beforeImg.src = 'pole.jpg';
+        if (afterImg) afterImg.src = 'pole_concept.jpg';
+        if (videoEl) {
+          videoEl.src = 'pole_video.mp4';
+          videoEl.poster = 'pole_concept.jpg';
+        }
+      } else {
+        if (beforeImg) beforeImg.src = 'ploshadka.jpg';
+        if (afterImg) afterImg.src = 'ploshadka_concept.jpg';
+        if (videoEl) {
+          videoEl.src = 'ploshadka_video.mp4';
+          videoEl.poster = 'ploshadka_concept.jpg';
+        }
+      }
+
+      // 2. Toggle Mode (Slider vs Video)
+      if (currentMode === 'slider') {
+        if (baContainer) baContainer.hidden = false;
+        if (videoWrap) videoWrap.hidden = true;
+        if (videoEl) videoEl.pause();
+        if (captionText) {
+          captionText.textContent = 'Потяните бегунок влево или вправо пальцем или мышкой, чтобы сравнить проект с текущим состоянием';
+        }
+      } else {
+        if (baContainer) baContainer.hidden = true;
+        if (videoWrap) videoWrap.hidden = false;
+        if (videoEl) {
+          videoEl.load();
+          videoEl.play().catch(function () {});
+        }
+        if (captionText) {
+          captionText.textContent = 'Сгенерированный ИИ динамический видеоролик реконструкции';
+        }
+      }
+    }
+
+    if (range && baContainer) {
+      range.addEventListener('input', function () {
+        baContainer.style.setProperty('--ba-pos', range.value + '%');
+      });
+    }
 
     viewButtons.forEach(function (btn) {
       btn.addEventListener('click', function () {
-        var view = btn.getAttribute('data-view');
+        currentView = btn.getAttribute('data-view');
         viewButtons.forEach(function (b) { b.classList.remove('active'); });
         btn.classList.add('active');
+        updateMedia();
+      });
+    });
 
-        if (view === 'pole') {
-          if (beforeImg) beforeImg.src = 'pole.jpg';
-          if (afterImg) afterImg.src = 'pole_concept.jpg';
-        } else if (view === 'ploshadka') {
-          if (beforeImg) beforeImg.src = 'ploshadka.jpg';
-          if (afterImg) afterImg.src = 'ploshadka_concept.jpg';
-        }
+    modeButtons.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        currentMode = btn.getAttribute('data-mode');
+        modeButtons.forEach(function (b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        updateMedia();
       });
     });
   }

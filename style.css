@@ -522,6 +522,13 @@ body {
   border: 1px solid rgba(245, 158, 11, 0.25);
 }
 
+.concept-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .concept-toggle-group {
   display: inline-flex;
   background: rgba(0, 0, 0, 0.35);
@@ -531,7 +538,11 @@ body {
   gap: 4px;
 }
 
-.btn-concept-view {
+.btn-concept-view,
+.btn-concept-mode {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   background: transparent;
   border: 1px solid transparent;
   padding: 6px 14px;
@@ -544,15 +555,24 @@ body {
   transition: all 0.2s ease;
 }
 
-.btn-concept-view:hover {
+.btn-concept-view:hover,
+.btn-concept-mode:hover {
   color: var(--text-primary);
 }
 
-.btn-concept-view.active {
+.btn-concept-view.active,
+.btn-concept-mode.active {
   background: rgba(255, 255, 255, 0.12);
   color: #ffffff;
   border-color: rgba(255, 255, 255, 0.18);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.btn-concept-mode.active {
+  background: rgba(16, 185, 129, 0.18);
+  color: #a7f3d0;
+  border-color: rgba(16, 185, 129, 0.35);
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.25);
 }
 
 .before-after-container {
@@ -675,6 +695,24 @@ body {
   font-size: 0.82rem;
   color: var(--text-muted);
   text-align: center;
+}
+
+.concept-video-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 16px 36px -10px rgba(0, 0, 0, 0.6);
+  background: #000;
+}
+
+.concept-video-player {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .section-header {
