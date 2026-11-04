@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Реконструкция детской площадки и футбольного поля</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1>Реконструкция детской площадки и футбольного поля</h1>
+      <p id="updated-at" class="updated-at" hidden></p>
+    </header>
+
+    <div id="error-box" class="error-box" hidden>
+      Не удалось загрузить данные, обновите страницу
+    </div>
+
+    <main id="main-content">
+      <section class="card progress-card">
+        <div class="progress-header">
+          <span id="progress-title" class="progress-title">Собрано 0 из 0 сум (0%)</span>
+        </div>
+        <div class="progress-bar-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progress-bar-track">
+          <div id="progress-bar-fill" class="progress-bar-fill" style="width: 0%"></div>
+        </div>
+        <div id="progress-remaining" class="progress-remaining">Осталось собрать: 0 сум</div>
+      </section>
+
+      <section class="stats-grid">
+        <div class="card stat-card">
+          <div class="stat-label">Собрано</div>
+          <div id="stat-collected" class="stat-value stat-collected">0 сум</div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-label">Потрачено</div>
+          <div id="stat-spent" class="stat-value stat-spent">0 сум</div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-label">Остаток на руках</div>
+          <div id="stat-balance" class="stat-value stat-balance">0 сум</div>
+        </div>
+      </section>
+
+      <section class="card section-card">
+        <div class="section-header">
+          <h2>Смета расходов</h2>
+          <button id="toggle-smeta-photos" class="btn-secondary" type="button" hidden>
+            Фото сметы мастера
+          </button>
+        </div>
+        <div id="smeta-photos-box" class="photos-grid smeta-photos-box" hidden></div>
+        <div id="smeta-content"></div>
+      </section>
+
+      <section class="card section-card">
+        <div class="section-header">
+          <h2>Взносы жителей</h2>
+          <span id="apartments-count" class="badge">Сдали: 0 кв.</span>
+        </div>
+        <div id="prihod-content"></div>
+      </section>
+
+      <section class="card section-card">
+        <div class="section-header">
+          <h2>Расходы по чекам</h2>
+        </div>
+        <div id="rashod-content"></div>
+      </section>
+
+      <section class="card section-card">
+        <div class="section-header">
+          <h2>Фото «до / после»</h2>
+        </div>
+        <div id="foto-content"></div>
+      </section>
+    </main>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
