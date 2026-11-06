@@ -9,9 +9,13 @@
 
 import os
 import re
+import sys
 import json
 import hashlib
 import urllib.request
+
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
 
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
 CHEKS_DIR = os.path.join(PROJECT_DIR, 'cheks')
@@ -212,7 +216,18 @@ def main():
         with open(OUTPUT_TXT, 'w', encoding='utf-8') as f:
             f.write("\n".join(lines_to_save) + "\n")
         print(f"\nТакже строки сохранены в файл: {OUTPUT_TXT}")
+        print("Открываем Блокнот с новыми строками (скопируйте и вставьте в лист «Приход»)...")
+        try:
+            import subprocess
+            subprocess.Popen(['notepad.exe', OUTPUT_TXT])
+        except Exception:
+            pass
     else:
+        if os.path.exists(OUTPUT_TXT):
+            try:
+                os.remove(OUTPUT_TXT)
+            except Exception:
+                pass
         print("\nВсе чеки уже учтены, новых записей нет.")
 
 if __name__ == '__main__':
