@@ -5,3 +5,7 @@ Thumbs.db
 
 # Local raw media folder
 media/
+
+# Video editing temporary files
+*.prproj
+Adobe Premiere Pro Auto-Save/
