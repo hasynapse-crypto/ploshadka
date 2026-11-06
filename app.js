@@ -238,6 +238,7 @@
       const flat = (r[2] || '').trim();
       const amount = parseAmount(r[3]);
       const method = (r[4] || '').trim();
+      const details = (r[5] || '').trim();
 
       if (!dateStr && !house && !flat && amount === 0) return;
 
@@ -255,7 +256,8 @@
         house: house,
         flat: flat,
         amount: amount,
-        method: method
+        method: method,
+        details: details
       });
     });
 
@@ -507,7 +509,14 @@
     if (!model.prihod.length) {
       prihodContent.innerHTML = '<p class="empty-state">Пока нет записей о взносах</p>';
     } else {
-      const rows = model.prihod.map(function (item) {
+      var modal = document.getElementById('receipt-modal');
+      var modalTitle = document.getElementById('modal-receipt-title');
+      var modalAddress = document.getElementById('modal-address');
+      var modalDate = document.getElementById('modal-date');
+      var modalMethod = document.getElementById('modal-method');
+      var modalDetails = document.getElementById('modal-details');
+
+      const rows = model.prihod.map(function (item, idx) {
         var methodStr = (item.method || '').toLowerCase();
         var methodBadge = '<span style="color:var(--text-dim)">—</span>';
         if (methodStr.indexOf('карт') !== -1) {
@@ -518,21 +527,47 @@
           methodBadge = '<span class="pill-method pill-cash">' + escapeHtml(item.method) + '</span>';
         }
 
+        var receiptCell = '<span style="color:var(--text-dim)">—</span>';
+        if (item.details) {
+          receiptCell = '<button class="btn-receipt-view" type="button" data-idx="' + idx + '">Квитанция</button>';
+        }
+
         return '<tr>' +
           '<td class="date-cell">' + escapeHtml(item.dateStr || '—') + '</td>' +
           '<td><strong>д. ' + escapeHtml(item.house || '—') + '</strong></td>' +
           '<td>кв. ' + escapeHtml(item.flat || '—') + '</td>' +
           '<td class="num">' + formatSum(item.amount) + '</td>' +
           '<td>' + methodBadge + '</td>' +
+          '<td>' + receiptCell + '</td>' +
         '</tr>';
       }).join('');
+
       prihodContent.innerHTML =
         '<div class="table-wrap">' +
           '<table>' +
-            '<thead><tr><th>Дата</th><th>Дом</th><th>Кв.</th><th class="num">Сумма</th><th>Способ</th></tr></thead>' +
+            '<thead><tr><th>Дата</th><th>Дом</th><th>Кв.</th><th class="num">Сумма</th><th>Способ</th><th>Квитанция</th></tr></thead>' +
             '<tbody>' + rows + '</tbody>' +
           '</table>' +
         '</div>';
+
+      // Event listener for receipt buttons
+      prihodContent.querySelectorAll('.btn-receipt-view').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var idx = parseInt(btn.getAttribute('data-idx'), 10);
+          var item = model.prihod[idx];
+          if (!item || !modal) return;
+          if (modalTitle) modalTitle.textContent = formatSum(item.amount);
+          if (modalAddress) modalAddress.textContent = 'Дом ' + item.house + ', кв. ' + item.flat;
+          if (modalDate) modalDate.textContent = item.dateStr || '—';
+          if (modalMethod) {
+            modalMethod.textContent = item.method
+              ? (item.method.toLowerCase().indexOf('карт') !== -1 ? 'Перевод на карту' : 'Наличные организатору')
+              : 'Перевод';
+          }
+          if (modalDetails) modalDetails.textContent = item.details || 'Платёж подтверждён';
+          modal.hidden = false;
+        });
+      });
     }
 
     // 6. Расходы
@@ -690,12 +725,33 @@
     });
   }
 
+  function initReceiptModal() {
+    var modal = document.getElementById('receipt-modal');
+    if (!modal) return;
+    var closeBtn = document.getElementById('modal-close-btn');
+    var doneBtn = document.getElementById('modal-done-btn');
+
+    function closeModal() {
+      modal.hidden = true;
+    }
+
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    if (doneBtn) doneBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', function (e) {
+      if (e.target === modal) closeModal();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !modal.hidden) closeModal();
+    });
+  }
+
   function initBrowser() {
     if (typeof window === 'undefined' || typeof document === 'undefined') return;
     if (typeof CONFIG === 'undefined') return;
 
     initTabs();
     initBeforeAfterSlider();
+    initReceiptModal();
 
     Promise.all([
       fetchCSV(CONFIG.smetaUrl),

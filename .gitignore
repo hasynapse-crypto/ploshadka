@@ -9,3 +9,6 @@ media/
 # Video editing temporary files
 *.prproj
 Adobe Premiere Pro Auto-Save/
+
+# Raw residents payment receipts (confidential)
+cheks/
