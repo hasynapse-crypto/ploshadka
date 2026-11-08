@@ -277,14 +277,16 @@
       if (!dateStr && !title && amount === 0 && !receiptRaw) return;
 
       totalSpent += amount;
-      const receiptLinks = buildPhotoUrls(receiptRaw);
+      const isUrl = /^https?:\/\//i.test(receiptRaw);
+      const receiptLinks = isUrl ? buildPhotoUrls(receiptRaw) : null;
 
       rashodItems.push({
         dateStr: dateStr,
         dateObj: parseRuDate(dateStr),
         title: title,
         amount: amount,
-        receiptUrl: receiptLinks ? receiptLinks.openUrl : ''
+        receiptUrl: receiptLinks ? receiptLinks.openUrl : '',
+        receiptDetails: !isUrl ? receiptRaw : ''
       });
     });
 
@@ -575,10 +577,20 @@
     if (!model.rashod.length) {
       rashodContent.innerHTML = '<p class="empty-state">Пока нет записей о расходах</p>';
     } else {
-      const rows = model.rashod.map(function (item) {
-        const receiptCell = item.receiptUrl
-          ? '<a class="btn-receipt" href="' + escapeHtml(item.receiptUrl) + '" target="_blank" rel="noopener noreferrer"><span>Чек</span> <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M17 7H7M17 7V17"/></svg></a>'
-          : '<span style="color:var(--text-dim)">—</span>';
+      var rModal = document.getElementById('receipt-modal');
+      var rModalTitle = document.getElementById('modal-receipt-title');
+      var rModalAddress = document.getElementById('modal-address');
+      var rModalDate = document.getElementById('modal-date');
+      var rModalMethod = document.getElementById('modal-method');
+      var rModalDetails = document.getElementById('modal-details');
+
+      const rows = model.rashod.map(function (item, idx) {
+        var receiptCell = '<span style="color:var(--text-dim)">—</span>';
+        if (item.receiptUrl) {
+          receiptCell = '<a class="btn-receipt" href="' + escapeHtml(item.receiptUrl) + '" target="_blank" rel="noopener noreferrer"><span>Чек</span> <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M17 7H7M17 7V17"/></svg></a>';
+        } else if (item.receiptDetails) {
+          receiptCell = '<button class="btn-receipt-view" type="button" data-rashod-idx="' + idx + '">Квитанция</button>';
+        }
         return '<tr>' +
           '<td class="date-cell">' + escapeHtml(item.dateStr || '—') + '</td>' +
           '<td>' + escapeHtml(item.title || '—') + '</td>' +
@@ -593,6 +605,20 @@
             '<tbody>' + rows + '</tbody>' +
           '</table>' +
         '</div>';
+
+      rashodContent.querySelectorAll('.btn-receipt-view').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var idx = parseInt(btn.getAttribute('data-rashod-idx'), 10);
+          var item = model.rashod[idx];
+          if (!item || !rModal) return;
+          if (rModalTitle) rModalTitle.textContent = formatSum(item.amount);
+          if (rModalAddress) rModalAddress.textContent = item.title || 'Оплата по смете';
+          if (rModalDate) rModalDate.textContent = item.dateStr || '—';
+          if (rModalMethod) rModalMethod.textContent = 'Перевод с карты фонда (*6137)';
+          if (rModalDetails) rModalDetails.textContent = item.receiptDetails || 'Платёж подтверждён';
+          rModal.hidden = false;
+        });
+      });
     }
 
     // 7. Фото «до / после»
