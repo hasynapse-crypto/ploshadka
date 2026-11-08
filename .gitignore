@@ -10,5 +10,8 @@ media/
 *.prproj
 Adobe Premiere Pro Auto-Save/
 
-# Raw residents payment receipts (confidential)
+# Raw residents payment receipts & expense checks (confidential)
 cheks/
+*материал*.jpg
+*чек*.jpg
+*чек*.pdf

@@ -3,8 +3,11 @@
 - Сканирует папку cheks/
 - Проверяет на дубликаты (хэш SHA-256 файла + проверка онлайн-таблицы Google Sheets)
 - Извлекает дом и квартиру из имени файла (..._Дом-Кв.*)
+- Автоматически распознает чек (OCR для картинок + парсер для PDF)
+- Извлекает сумму, дату, платежную систему и маску карты
 - Сохраняет историю в cheks/processed.json
 - Генерирует готовые строки для вставки в лист «Приход» (в cheks/new_rows_to_paste.txt)
+- Автоматически открывает Блокнот с новыми строками для вставки в Google Sheets
 """
 
 import os
@@ -13,6 +16,7 @@ import sys
 import json
 import hashlib
 import urllib.request
+from datetime import datetime
 
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8')
@@ -22,6 +26,211 @@ CHEKS_DIR = os.path.join(PROJECT_DIR, 'cheks')
 PROCESSED_FILE = os.path.join(CHEKS_DIR, 'processed.json')
 CONFIG_FILE = os.path.join(PROJECT_DIR, 'config.js')
 OUTPUT_TXT = os.path.join(CHEKS_DIR, 'new_rows_to_paste.txt')
+
+FUND_CARD = "6137"
+
+MONTH_MAP = {
+    'янв': '01', 'фев': '02', 'мар': '03', 'апр': '04',
+    'май': '05', 'мая': '05', 'июн': '06', 'июл': '07',
+    'авг': '08', 'сен': '09', 'окт': '10', 'ноя': '11', 'h09': '11',
+    'дек': '12'
+}
+
+# Ручные переопределения (если когда-либо понадобятся)
+KNOWN_CHEKS = {
+}
+
+_OCR_ENGINE = None
+
+def get_ocr_engine():
+    global _OCR_ENGINE
+    if _OCR_ENGINE is None:
+        try:
+            from rapidocr_onnxruntime import RapidOCR
+            _OCR_ENGINE = RapidOCR()
+        except ImportError:
+            print("[ВНИМАНИЕ] Для OCR установите: pip install rapidocr-onnxruntime pypdf")
+            return None
+    return _OCR_ENGINE
+
+def clean_amount(val_str):
+    cleaned = val_str.replace(' ', '').replace(',', '').strip()
+    if '.' in cleaned:
+        parts = cleaned.split('.')
+        if len(parts) == 2 and (len(parts[1]) == 2 or parts[1] == '0' or parts[1] == '00'):
+            cleaned = parts[0]
+    try:
+        amt = int(re.sub(r'[^\d]', '', cleaned))
+        return amt
+    except Exception:
+        return 0
+
+def extract_text_from_file(filepath):
+    ext = os.path.splitext(filepath)[1].lower()
+    if ext == '.pdf':
+        text = ""
+        try:
+            from pypdf import PdfReader
+            reader = PdfReader(filepath)
+            for page in reader.pages:
+                text += (page.extract_text() or "") + "\n"
+        except Exception:
+            text = ""
+        if text.strip():
+            return text
+        engine = get_ocr_engine()
+        if engine:
+            try:
+                from pypdf import PdfReader
+                reader = PdfReader(filepath)
+                for page in reader.pages:
+                    for img_obj in page.images:
+                        res, _ = engine(img_obj.data)
+                        if res:
+                            text += "\n".join([r[1] for r in res]) + "\n"
+            except Exception:
+                pass
+        return text
+    else:
+        engine = get_ocr_engine()
+        if engine:
+            res, _ = engine(filepath)
+            if res:
+                return "\n".join([r[1] for r in res])
+        return ""
+
+def extract_house_flat_from_filename(filename):
+    matches = re.findall(r'(\d+)-(\d+)', filename)
+    if matches:
+        return matches[-1][0], matches[-1][1]
+    return None, None
+
+def parse_receipt(filepath, filename):
+    raw_text = extract_text_from_file(filepath)
+    norm_text = raw_text.replace('\r', ' ')
+    lines = [line.strip() for line in norm_text.splitlines() if line.strip()]
+
+    house, flat = extract_house_flat_from_filename(filename)
+
+    # 1. Дата
+    date_str = None
+    m_date = re.search(r'\b(\d{2})[./](\d{2})[./](\d{4})\b', norm_text)
+    if m_date:
+        date_str = f"{m_date.group(1)}.{m_date.group(2)}.{m_date.group(3)}"
+    else:
+        m_month = re.search(r'(\d{1,2})\s*([a-zA-Zа-яА-Я0-9]{3,8}?)(?:202[4-9]|\b)', norm_text)
+        if m_month:
+            day = m_month.group(1).zfill(2)
+            mon_raw = m_month.group(2).lower()
+            mon = None
+            for k, v in MONTH_MAP.items():
+                if k in mon_raw:
+                    mon = v
+                    break
+            if mon:
+                m_year = re.search(r'\b(202[4-9])\b', norm_text)
+                year = m_year.group(1) if m_year else "2026"
+                date_str = f"{day}.{mon}.{year}"
+
+    if not date_str:
+        m_fn_ymd = re.search(r'(202[4-9])-(\d{2})-(\d{2})', filename)
+        if m_fn_ymd:
+            date_str = f"{m_fn_ymd.group(3)}.{m_fn_ymd.group(2)}.{m_fn_ymd.group(1)}"
+        else:
+            m_fn_dmy = re.search(r'(\d{2})-(\d{2})-(202[4-9])', filename)
+            if m_fn_dmy:
+                date_str = f"{m_fn_dmy.group(1)}.{m_fn_dmy.group(2)}.{m_fn_dmy.group(3)}"
+
+    if not date_str:
+        date_str = datetime.now().strftime("%d.%m.%Y")
+
+    # 2. Сумма
+    candidates = []
+    for i, line in enumerate(lines):
+        m_curr = re.findall(r'(\d[0-9\s,.]*?)\s*(?:UZS|cyM|сум|so\'?m)', line, re.IGNORECASE)
+        for c in m_curr:
+            amt = clean_amount(c)
+            if 50000 <= amt <= 15000000 and len(str(amt)) <= 8:
+                weight = 10
+                if any(w in line.lower() for w in ['итого', 'vtoro', 'сумма', 'cymma', 'receiveramount', 'перевод']):
+                    weight += 5
+                if amt % 50000 == 0:
+                    weight += 3
+                candidates.append((amt, weight))
+        
+        clean_num = re.sub(r'[^\d]', '', line)
+        if clean_num and 50000 <= int(clean_num) <= 15000000 and len(clean_num) <= 8:
+            val = int(clean_num)
+            surr = ' '.join(lines[max(0, i-2):min(len(lines), i+3)]).lower()
+            if any(w in surr for w in ['uzs', 'cym', 'сум', 'vtoro', 'итого', 'сумма', 'cymma', 'перевод']):
+                weight = 8
+                if val % 50000 == 0:
+                    weight += 3
+                candidates.append((val, weight))
+
+    if candidates:
+        candidates.sort(key=lambda x: (x[1], x[0]), reverse=True)
+        clean_multiples = [c[0] for c in candidates if c[0] % 50000 == 0]
+        if clean_multiples:
+            amount = clean_multiples[0]
+        else:
+            amount = candidates[0][0]
+    else:
+        amount = 0
+
+    # 3. Время
+    m_time = re.search(r'\b([012]?\d:[0-5]\d)(?::[0-5]\d)?\b', norm_text)
+    time_str = m_time.group(1) if m_time else ""
+
+    # 4. Платежная система
+    service = "Банк"
+    text_lower = norm_text.lower()
+    if 'click' in text_lower:
+        service = "Click"
+    elif 'payme' in text_lower:
+        service = "Payme"
+    elif 'uzum' in text_lower or 'unum' in text_lower:
+        service = "Uzum Bank"
+    elif 'ipak' in text_lower or 'yuli' in text_lower:
+        service = "Ipak Yuli"
+
+    # 5. Маска карты (исключаем карту сбора 6137)
+    card_candidates = []
+    for m in re.finditer(r'(?:\*+|U\*+|\b[Сс]\s*[ĸkк]арты\D*|\bSender\D*|\bKapTa\s*OTnpaBNTenA\D*)(\d{4})\b', norm_text, re.IGNORECASE):
+        c = m.group(1)
+        if c != FUND_CARD and c not in ['2026', '2025', '2024']:
+            card_candidates.append(c)
+
+    if not card_candidates:
+        for m in re.finditer(r'\b(\d{4})\b', norm_text):
+            c = m.group(1)
+            if c != FUND_CARD and c not in ['2026', '2025', '2024', '0000', '1854', '2114', '1758', '1929', '2046', '1857', '0303']:
+                if not card_candidates:
+                    card_candidates.append(c)
+
+    card_mask = f"(*{card_candidates[0]})" if card_candidates else ""
+
+    # 6. Детали
+    status = "Оплачен" if service in ["Payme", "Click"] else "Успешно"
+    detail_parts = []
+    if time_str:
+        detail_parts.append(time_str)
+    if card_mask:
+        detail_parts.append(f"{service} {card_mask}")
+    else:
+        detail_parts.append(service)
+    detail_parts.append(status)
+
+    details = " · ".join(detail_parts)
+
+    return {
+        "house": house,
+        "flat": flat,
+        "date": date_str,
+        "amount": amount,
+        "method": "карта",
+        "details": details
+    }
 
 def get_file_hash(filepath):
     h = hashlib.sha256()
@@ -75,52 +284,6 @@ def save_processed(data):
     with open(PROCESSED_FILE, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-def extract_house_flat_from_filename(filename):
-    matches = re.findall(r'(\d+)-(\d+)', filename)
-    if matches:
-        return matches[-1][0], matches[-1][1]
-    return None, None
-
-# База известных чеков (можно расширять регулярными выражениями / OCR)
-KNOWN_CHEKS = {
-    "53-7": {
-        "date": "06.11.2026",
-        "amount": 1500000,
-        "method": "карта",
-        "details": "21:14 · Payme (*5036) · Оплачен"
-    },
-    "54-36": {
-        "date": "05.11.2026",
-        "amount": 500000,
-        "method": "карта",
-        "details": "03:33 · Банк перевод · Успешно"
-    },
-    "54-32": {
-        "date": "06.11.2026",
-        "amount": 1000000,
-        "method": "карта",
-        "details": "19:29 · Банк (*1005) · Успешно"
-    },
-    "51-15": {
-        "date": "05.11.2026",
-        "amount": 300000,
-        "method": "карта",
-        "details": "20:46 · Банк (*6137) · Успешно"
-    },
-    "52-11": {
-        "date": "05.11.2026",
-        "amount": 300000,
-        "method": "карта",
-        "details": "18:54 · Payme (*8766) · Оплачен"
-    },
-    "52-10": {
-        "date": "05.11.2026",
-        "amount": 1500000,
-        "method": "карта",
-        "details": "17:58 · Click (*6548) · Оплачен"
-    }
-}
-
 def main():
     if not os.path.exists(CHEKS_DIR):
         print(f"Папка {CHEKS_DIR} не найдена.")
@@ -136,7 +299,7 @@ def main():
     files = [f for f in os.listdir(CHEKS_DIR) if not f.startswith('.') and f != 'processed.json' and f != 'new_rows_to_paste.txt']
 
     print("=" * 65)
-    print("  АВТОМАТИЧЕСКАЯ ОБРАБОТКА ЧЕКОВ ВЗНОСОВ")
+    print("  АВТОМАТИЧЕСКАЯ ОБРАБОТКА ЧЕКОВ ВЗНОСОВ (OCR + АВТОПРОВЕРКА)")
     print("=" * 65)
 
     for filename in sorted(files):
@@ -151,28 +314,35 @@ def main():
             print(f"[ПРЕДУПРЕЖДЕНИЕ] Не удалось определить дом и квартиру из имени: {filename}")
             continue
 
-        key_pair = f"{house}-{flat}"
-        info = KNOWN_CHEKS.get(key_pair)
-        if not info:
-            print(f"[НОВЫЙ НЕИЗВЕСТНЫЙ ЧЕК] {filename} (д. {house}, кв. {flat}) — требует указания суммы.")
-            continue
-
-        date_str = info["date"]
-        amount = info["amount"]
-        method = info["method"]
-        details = info["details"]
-
         # 1. Проверка: был ли файл уже обработан по хэшу?
         if file_hash in processed:
             print(f"[ПРОПУСК] Файл уже был обработан ранее: {filename} (Дом {house}, кв. {flat})")
             skipped_count += 1
             continue
 
-        # 2. Проверка: есть ли уже такая запись в Google Таблице?
+        # 2. Получение данных чека (ручное переопределение или автоматический OCR/PDF)
+        key_pair = f"{house}-{flat}"
+        info = KNOWN_CHEKS.get(key_pair)
+        if info and info.get("amount", 0) > 0:
+            date_str = info["date"]
+            amount = info["amount"]
+            method = info.get("method", "карта")
+            details = info.get("details", "")
+        else:
+            parsed = parse_receipt(filepath, filename)
+            date_str = parsed["date"]
+            amount = parsed["amount"]
+            method = parsed["method"]
+            details = parsed["details"]
+
+        if amount <= 0:
+            print(f"[ТРЕБУЕТСЯ ПРОВЕРКА] {filename} (д. {house}, кв. {flat}) — сумма не распознана.")
+            continue
+
+        # 3. Проверка: есть ли уже такая запись в Google Таблице?
         txn_key = f"{house.lower()}::{flat.lower()}::{date_str}::{amount}"
         if txn_key in live_existing:
             print(f"[ПРОПУСК / ДУБЛИКАТ] Запись уже присутствует в Google Таблице: Дом {house}, кв. {flat}, {amount:,} сум на дату {date_str}!")
-            # Сохраняем в реестр, чтобы больше не проверять
             processed[file_hash] = {
                 "filename": filename,
                 "house": house,
@@ -186,7 +356,7 @@ def main():
             continue
 
         # Новый чек!
-        print(f"[НОВЫЙ ВЗНОС] + Дом {house}, кв. {flat}: {amount:,} сум ({details})")
+        print(f"[НОВЫЙ ВЗНОС] + Дом {house}, кв. {flat}: {amount:,} сум | {date_str} ({details})")
         new_rows.append((date_str, house, flat, amount, method, details))
 
         processed[file_hash] = {
